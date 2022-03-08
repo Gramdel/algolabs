@@ -3,7 +3,6 @@
 #include <string>
 #include <stack>
 #include <list>
-#include <regex>
 
 using namespace std;
 
