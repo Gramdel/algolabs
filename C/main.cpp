@@ -1,60 +1,75 @@
 #include <iostream>
+#include <map>
 #include <string>
 #include <stack>
-#include <map>
-#include <regex>
+#include <list>
 
 using namespace std;
 
+bool is_number(const string &s) {
+    bool first_el = true;
+    for (char const &c: s) {
+        if (first_el) {
+            first_el = false;
+            if (c == '-') {
+                continue;
+            }
+        }
+        if (!isdigit(c)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 int main() {
-    map<string, stack<int> *> map_of_vars;
+    map<string, stack<string> *> vars_and_values;
+    stack<list<string> *> changes;
     string s;
 
     while (getline(cin, s)) {
         if (s.empty()) {
             break;
         } else if (s[0] == '{') {
-            for (auto &pair: map_of_vars) {
-                pair.second->push(pair.second->top());
-            }
+            changes.push(new list<string>);
+            continue;
         } else if (s[0] == '}') {
-            for (auto &pair: map_of_vars) {
-                if (pair.second->size() == 1) {
-                    pair.second->top() = 0;
-                } else {
-                    pair.second->pop();
-                }
+            for (const auto &name: *changes.top()) {
+                vars_and_values[name]->pop();
             }
+            changes.pop();
+            continue;
         } else {
             int middle = (int) s.find('=');
             string left = s.substr(0, middle);
             string right = s.substr(middle + 1, s.length() - middle - 1);
 
-            if (map_of_vars.find(left) == map_of_vars.end()) {
-                map_of_vars[left] = new stack<int>;
-                map_of_vars[left]->push(0);
+            if (vars_and_values.find(left) == vars_and_values.end()) {
+                vars_and_values[left] = new stack<string>;
+                vars_and_values[left]->push("0");
             }
-
             if (left == right) {
-                cout << map_of_vars[left]->top() << endl;
+                cout << vars_and_values[left]->top() << endl;
                 continue;
             }
+            if (!changes.empty()) {
+                changes.top()->push_back(left);
+            }
 
-            regex exp("-?\\d+");
-            if (regex_match(right, exp)) {
-                map_of_vars[left]->top() = stoi(right);
+            if (is_number(right)) {
+                vars_and_values[left]->push(right);
             } else {
-                if (map_of_vars.find(right) == map_of_vars.end()) {
-                    map_of_vars[right] = new stack<int>;
-                    map_of_vars[right]->push(0);
+                if (vars_and_values.find(right) == vars_and_values.end()) {
+                    vars_and_values[right] = new stack<string>;
+                    vars_and_values[right]->push("0");
                 }
-                map_of_vars[left]->top() = map_of_vars[right]->top();
-                cout << map_of_vars[right]->top() << endl;
+                vars_and_values[left]->push(vars_and_values[right]->top());
+                cout << vars_and_values[right]->top() << endl;
             }
         }
     }
 
-    for (auto &pair: map_of_vars) {
+    for (auto &pair: vars_and_values) {
         delete pair.second;
     }
 
