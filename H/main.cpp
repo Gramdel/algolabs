@@ -18,7 +18,7 @@ int main() {
     for (int i = 0; i < n; i++) {
         if (n >= k) {
             if (count == k) {
-                count = 0;
+                count = 1;
                 continue;
             } else {
                 count++;
