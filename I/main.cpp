@@ -1,53 +1,34 @@
 #include <iostream>
-#include <set>
-#include <queue>
+#include <vector>
 #include <list>
-#include <functional>
+#include <map>
 
 using namespace std;
-
-vector<list<int>> distances;
-
-bool compare(int a, int b) {
-    cout << a << " > " << b << " = ";
-    if (distances[a - 1].empty()) {
-        cout << false << endl;
-        return false;
-    } else if (distances[b - 1].empty()) {
-        cout << true << endl;
-        return true;
-    }
-    cout << (distances[a - 1].front() < distances[b - 1].front()) << endl;
-    return distances[a - 1].front() < distances[b - 1].front();
-}
 
 int main() {
     int n, k, p, count = 0;
     cin >> n >> k >> p;
 
     vector<int> order(p);
-    distances.resize(n);
+    vector<list<int>> distances(n);
     for (int i = 0; i < p; i++) {
         cin >> order[i];
         distances[order[i] - 1].push_back(i);
     }
 
-    set<int> floor;
+    map<int, int> floor;
     for (int i = 0; i < p; i++) {
-        if (floor.find(order[i]) == floor.end()) {
+        auto entry = floor.find(distances[order[i] - 1].front());
+        if (entry == floor.end()) {
             if (floor.size() == k) {
-                priority_queue<int, vector<int>, function<bool(int, int)>> priorities(compare);
-                for (int j = 1; j <= n; j++) {
-                    if (j != order[i]) {
-                        priorities.push(j);
-                    }
-                }
-                floor.erase(priorities.top());
+                floor.erase(prev(floor.end()));
             }
-            floor.insert(order[i]);
             count++;
+        } else {
+            floor.erase(entry);
         }
         distances[order[i] - 1].pop_front();
+        floor[distances[order[i] - 1].empty() ? 500000 + order[i] : distances[order[i] - 1].front()] = order[i];
     }
     cout << count;
 
