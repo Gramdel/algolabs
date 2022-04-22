@@ -1,5 +1,5 @@
 #include <iostream>
-#include <vector>
+#include <list>
 
 using namespace std;
 
@@ -13,21 +13,21 @@ struct block {
     }
 };
 
-vector<block> blocks;
-vector<int> history;
+list<block> blocks;
+int *history;
 
 int reserve_block(int size) {
-    for (int i = 0; i < blocks.size(); i++) {
-        if (blocks[i].isFree) {
-            if (blocks[i].calcSize() < size) {
+    for (auto b = blocks.begin(); b != blocks.end(); b++) {
+        if (b->isFree) {
+            if (b->calcSize() < size) {
                 continue;
             } else {
-                if (blocks[i].calcSize() > size) {
-                    blocks.insert(blocks.begin() + i + 1, {blocks[i].start + size, blocks[i].end, true});
-                    blocks[i].end = blocks[i].start + size - 1;
+                if (b->calcSize() > size) {
+                    blocks.emplace(next(b), block{b->start + size, b->end, true});
+                    b->end = b->start + size - 1;
                 }
-                blocks[i].isFree = false;
-                return blocks[i].start;
+                b->isFree = false;
+                return b->start;
             }
         }
     }
@@ -36,16 +36,17 @@ int reserve_block(int size) {
 
 void free_block(int id) {
     if (history[id]) {
-        for (int i = 0; i < blocks.size(); i++) {
-            if (blocks[i].start == history[id]) {
-                blocks[i].isFree = true;
-                if (i < blocks.size() - 1 && blocks[i + 1].isFree) {
-                    blocks[i + 1].start = blocks[i].start;
-                    blocks.erase(blocks.begin() + i);
+        for (auto b = blocks.begin(); b != blocks.end(); b++) {
+            if (b->start == history[id]) {
+                b->isFree = true;
+                if (b != blocks.end() && next(b)->isFree) {
+                    next(b)->start = b->start;
+                    b = next(b);
+                    blocks.erase(prev(b));
                 }
-                if (i > 0 && blocks[i - 1].isFree) {
-                    blocks[i - 1].end = blocks[i].end;
-                    blocks.erase(blocks.begin() + i);
+                if (b != blocks.begin() && prev(b)->isFree) {
+                    prev(b)->end = b->end;
+                    blocks.erase(b);
                 }
                 return;
             }
@@ -58,16 +59,18 @@ int main() {
     cin >> n >> m;
 
     blocks.push_back({1, n, true});
+    history = new int[m];
     for (int i = 0; i < m; i++) {
         int tmp;
         cin >> tmp;
         if (tmp > 0) {
-            history.push_back(reserve_block(tmp));
-            cout << history.back() << endl;
+            history[i] = reserve_block(tmp);
+            cout << history[i] << endl;
         } else {
-            history.push_back(-1);
+            history[i] = -1;
             free_block(tmp * (-1) - 1);
         }
     }
+    delete[] history;
     return 0;
 }
