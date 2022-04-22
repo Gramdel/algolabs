@@ -4,7 +4,6 @@
 using namespace std;
 
 struct block {
-    size_t id;
     int start;
     int end;
     bool isFree;
@@ -24,11 +23,10 @@ int reserve_block(int size) {
                 continue;
             } else {
                 if (blocks[i].calcSize() > size) {
-                    blocks.insert(blocks.begin() + i + 1, {blocks.size(), blocks[i].start + size, blocks[i].end, true});
+                    blocks.insert(blocks.begin() + i + 1, {blocks[i].start + size, blocks[i].end, true});
                     blocks[i].end = blocks[i].start + size - 1;
                 }
                 blocks[i].isFree = false;
-                history.push_back(blocks[i].start);
                 return blocks[i].start;
             }
         }
@@ -37,10 +35,20 @@ int reserve_block(int size) {
 }
 
 void free_block(int id) {
-    for (int i = 0; i < blocks.size(); i++) {
-        if (blocks[i].start == history[id]) {
-            blocks[i].isFree = true;
-            return;
+    if (history[id]) {
+        for (int i = 0; i < blocks.size(); i++) {
+            if (blocks[i].start == history[id]) {
+                blocks[i].isFree = true;
+                if (i < blocks.size() - 1 && blocks[i + 1].isFree) {
+                    blocks[i + 1].start = blocks[i].start;
+                    blocks.erase(blocks.begin() + i);
+                }
+                if (i > 0 && blocks[i - 1].isFree) {
+                    blocks[i - 1].end = blocks[i].end;
+                    blocks.erase(blocks.begin() + i);
+                }
+                return;
+            }
         }
     }
 }
@@ -49,16 +57,17 @@ int main() {
     int n, m;
     cin >> n >> m;
 
-    blocks.push_back({blocks.size(), 1, n, true});
+    blocks.push_back({1, n, true});
     for (int i = 0; i < m; i++) {
         int tmp;
         cin >> tmp;
         if (tmp > 0) {
-            cout << reserve_block(tmp) << endl;
+            history.push_back(reserve_block(tmp));
+            cout << history.back() << endl;
         } else {
-            free_block(tmp*(-1)-1);
+            history.push_back(-1);
+            free_block(tmp * (-1) - 1);
         }
     }
-
     return 0;
 }
