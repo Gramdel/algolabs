@@ -1,72 +1,59 @@
 #include <iostream>
-#include <list>
 #include <map>
 
 using namespace std;
 
-struct block {
-    int start;
-    int end;
-    bool isFree;
+map<int, int> by_start;
+multimap<int, int> by_size;
+pair<int, int> *history;
 
-    int calcSize() const {
-        return end + 1 - start;
-    }
-};
-
-map<int, block> block_map;
-multimap<int, int> block_size;
-int *history;
-
-int reserve_block(int size) {
-    auto it = block_size.lower_bound(size);
-    while (it != block_size.end() && it != prev(block_size.end()) && next(it)->second < it->second) {
-        it = next(it);
-    }
-
+int reserve_block(int capacity) {
     int start = -1;
-    if (it != block_size.end()) {
-        if (it->first > size) {
-            block_size.insert({it->first - size, it->second + size});
-            block_map[it->second + size] = {it->second + size, block_map[it->second].end, true};
-            block_map[it->second].end = it->second + size - 1;
+    auto by_size_it = by_size.lower_bound(capacity);
+    if (by_size_it != by_size.end()) {
+        start = by_size_it->second;
+        int size = by_size_it->first;
+        if (size > capacity) {
+            by_size.insert({size - capacity, start + capacity});
+            by_start.insert({start + capacity, size - capacity});
         }
-        block_map[it->second].isFree = false;
-        start = it->second;
-        block_size.erase(it);
     }
     return start;
 }
 
 void free_block(int id) {
-    if (history[id]) {
-        auto b = block_map.find(history[id]);
-        b->second.isFree = true;
-        if (b != prev(block_map.end()) && next(b)->second.isFree) {
-            auto range = block_size.equal_range(next(b)->second.calcSize());
-            for (auto it = range.first; it != range.second; it++) {
-                if (it->second == next(b)->second.start) {
-                    block_size.erase(it);
+    if (history[id].first) {
+        int start = history[id].first;
+        int size = history[id].second;
+
+        auto next = by_start.lower_bound(start);
+        auto prev = next == by_start.begin() ? by_start.end() : std::prev(next);
+
+        if (next != by_start.end() && next->first == start + size) {
+            size += next->second;
+            auto range = by_size.equal_range(next->second);
+            for (auto &it = range.first; it != range.second; it++) {
+                if (it->second == next->first) {
+                    by_size.erase(it);
                     break;
                 }
             }
-            int end = next(b)->second.end;
-            block_map.erase(next(b));
-            b->second.end = end;
+            by_start.erase(next);
         }
-        if (b != block_map.begin() && prev(b)->second.isFree) {
-            auto range = block_size.equal_range(prev(b)->second.calcSize());
-            for (auto it = range.first; it != range.second; it++) {
-                if (it->second == prev(b)->second.start) {
-                    block_size.erase(it);
+        if (prev != by_start.end() && start == prev->second + prev->first) {
+            size += prev->second;
+            start = prev->first;
+            auto range = by_size.equal_range(prev->second);
+            for (auto &it = range.first; it != range.second; it++) {
+                if (it->second == prev->first) {
+                    by_size.erase(it);
                     break;
                 }
             }
-            int start = prev(b)->second.start;
-            block_map.erase(prev(b));
-            b->second.start = start;
+            by_start.erase(prev);
         }
-        block_size.insert({b->second.calcSize(), b->second.start});
+        by_size.insert({size, start});
+        by_start.insert({start, size});
     }
 }
 
@@ -74,17 +61,17 @@ int main() {
     int n, m;
     cin >> n >> m;
 
-    block_map[1] = {1, n, true};
-    block_size.insert({n, 1});
-    history = new int[m];
+    by_start.insert({1, n});
+    by_size.insert({n, 1});
+    history = new pair<int, int>[m];
     for (int i = 0; i < m; i++) {
         int tmp;
         cin >> tmp;
         if (tmp > 0) {
-            history[i] = reserve_block(tmp);
-            cout << history[i] << endl;
+            history[i] = {reserve_block(tmp), tmp};
+            cout << history[i].first << endl;
         } else {
-            history[i] = -1;
+            history[i] = {-1, tmp};
             free_block(tmp * (-1) - 1);
         }
     }
