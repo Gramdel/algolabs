@@ -1,5 +1,6 @@
 #include <iostream>
 #include <list>
+#include <map>
 
 using namespace std;
 
@@ -13,44 +14,59 @@ struct block {
     }
 };
 
-list<block> blocks;
+map<int, block> block_map;
+multimap<int, int> block_size;
 int *history;
 
 int reserve_block(int size) {
-    for (auto b = blocks.begin(); b != blocks.end(); b++) {
-        if (b->isFree) {
-            if (b->calcSize() < size) {
-                continue;
-            } else {
-                if (b->calcSize() > size) {
-                    blocks.emplace(next(b), block{b->start + size, b->end, true});
-                    b->end = b->start + size - 1;
-                }
-                b->isFree = false;
-                return b->start;
-            }
-        }
+    auto it = block_size.lower_bound(size);
+    while (it != block_size.end() && it != prev(block_size.end()) && next(it)->second < it->second) {
+        it = next(it);
     }
-    return -1;
+
+    int start = -1;
+    if (it != block_size.end()) {
+        if (it->first > size) {
+            block_size.insert({it->first - size, it->second + size});
+            block_map[it->second + size] = {it->second + size, block_map[it->second].end, true};
+            block_map[it->second].end = it->second + size - 1;
+        }
+        block_map[it->second].isFree = false;
+        start = it->second;
+        block_size.erase(it);
+    }
+    return start;
 }
 
 void free_block(int id) {
     if (history[id]) {
-        for (auto b = blocks.begin(); b != blocks.end(); b++) {
-            if (b->start == history[id]) {
-                b->isFree = true;
-                if (b != blocks.end() && next(b)->isFree) {
-                    next(b)->start = b->start;
-                    b = next(b);
-                    blocks.erase(prev(b));
+        auto b = block_map.find(history[id]);
+        b->second.isFree = true;
+        if (b != prev(block_map.end()) && next(b)->second.isFree) {
+            auto range = block_size.equal_range(next(b)->second.calcSize());
+            for (auto it = range.first; it != range.second; it++) {
+                if (it->second == next(b)->second.start) {
+                    block_size.erase(it);
+                    break;
                 }
-                if (b != blocks.begin() && prev(b)->isFree) {
-                    prev(b)->end = b->end;
-                    blocks.erase(b);
-                }
-                return;
             }
+            int end = next(b)->second.end;
+            block_map.erase(next(b));
+            b->second.end = end;
         }
+        if (b != block_map.begin() && prev(b)->second.isFree) {
+            auto range = block_size.equal_range(prev(b)->second.calcSize());
+            for (auto it = range.first; it != range.second; it++) {
+                if (it->second == prev(b)->second.start) {
+                    block_size.erase(it);
+                    break;
+                }
+            }
+            int start = prev(b)->second.start;
+            block_map.erase(prev(b));
+            b->second.start = start;
+        }
+        block_size.insert({b->second.calcSize(), b->second.start});
     }
 }
 
@@ -58,7 +74,8 @@ int main() {
     int n, m;
     cin >> n >> m;
 
-    blocks.push_back({1, n, true});
+    block_map[1] = {1, n, true};
+    block_size.insert({n, 1});
     history = new int[m];
     for (int i = 0; i < m; i++) {
         int tmp;
