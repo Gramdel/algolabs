@@ -1,34 +1,28 @@
 #include <iostream>
 #include <vector>
-#include <set>
+#include <climits>
 
 using namespace std;
 
 struct Vertex {
     bool is_visited = false;
-    set<int> neighbours;
 };
 
 vector<Vertex> graph;
 int **fuel_matrix;
 
-bool fly(int from_index, int to_index, int fuel) {
-    if (fuel_matrix[from_index][to_index] > fuel) {
-        return false;
-    }
-
-    if (!graph[to_index].is_visited) {
-        graph[to_index].is_visited = true;
+int fly(int start_index, int fuel) {
+    int result = 0;
+    if (!graph[start_index].is_visited) {
+        result++;
+        graph[start_index].is_visited = true;
         for (int i = 0; i < graph.size(); i++) {
-            if (i != to_index) {
-                bool check = fly(to_index, i, fuel);
-                if (!check) {
-                    return false;
-                }
+            if (i != start_index && fuel_matrix[start_index][i] <= fuel) {
+                result += fly(i, fuel);
             }
         }
     }
-    return true;
+    return result;
 }
 
 int main() {
@@ -53,23 +47,31 @@ int main() {
                 if (tmp > max) {
                     max = tmp;
                 }
-                graph[i].neighbours.insert(j);
             }
         }
     }
 
     int l = min, r = max, mid;
     while (r > l) {
-        mid = l + (r - l + 1) / 2;
+        mid = l + (r - l) / 2;
 
-        bool check = fly(0, 1, r);
-        if (check) {
-            r = mid - 1;
+        for (auto &i: graph) {
+            i.is_visited = false;
+        }
+
+        int result = fly(0, mid);
+        if (result == n) {
+            r = mid;
         } else {
-            l = mid;
+            l = mid + 1;
         }
     }
-    cout << l << endl;
+
+    if (n == 1) {
+        cout << 0 << endl;
+    } else {
+        cout << l << endl;
+    }
 
     for (int i = 0; i < n; ++i) {
         delete[] fuel_matrix[i];
