@@ -11,15 +11,13 @@ struct Vertex {
 vector<Vertex> graph;
 int **fuel_matrix;
 
-int fly(int start_index, int fuel) {
-    int result = 0;
-    if (!graph[start_index].is_visited) {
-        result++;
-        graph[start_index].is_visited = true;
-        for (int i = 0; i < graph.size(); i++) {
-            if (i != start_index && fuel_matrix[start_index][i] <= fuel) {
-                result += fly(i, fuel);
-            }
+int fly(int start_index, int fuel, bool swap_indexes) {
+    int result = 1;
+    graph[start_index].is_visited = true;
+    for (int i = 0; i < graph.size(); i++) {
+        int needed_fuel = swap_indexes ? fuel_matrix[start_index][i] : fuel_matrix[i][start_index];
+        if (i != start_index && needed_fuel <= fuel && !graph[i].is_visited) {
+            result += fly(i, fuel, swap_indexes);
         }
     }
     return result;
@@ -58,9 +56,14 @@ int main() {
         for (auto &i: graph) {
             i.is_visited = false;
         }
+        int result = fly(0, mid, false);
 
-        int result = fly(0, mid);
-        if (result == n) {
+        for (auto &i: graph) {
+            i.is_visited = false;
+        }
+        result += fly(0, mid, true);
+
+        if (result == 2 * n) {
             r = mid;
         } else {
             l = mid + 1;
