@@ -3,23 +3,23 @@
 
 using namespace std;
 
-enum class color {
+enum class Color {
     red, blue
 };
 
-struct vertex {
-    color color;
+struct Vertex {
+    Color color;
     bool visited = false;
     vector<int> neighbours;
 };
 
-bool draw(vertex &u, color prev_color, vector<vertex> &graph) {
+bool draw(Vertex &u, Color prev_color, vector<Vertex> &graph) {
     if (u.visited) {
         return u.color != prev_color;
     }
 
     u.visited = true;
-    u.color = prev_color == color::red ? color::blue : color::red;
+    u.color = prev_color == Color::red ? Color::blue : Color::red;
     if (!u.neighbours.empty()) {
         for (auto it: u.neighbours) {
             bool check = draw(graph[it], u.color, graph);
@@ -36,7 +36,7 @@ int main() {
     int n, m;
     cin >> n >> m;
 
-    vector<vertex> graph(n);
+    vector<Vertex> graph(n);
 
     for (int i = 0; i < m; i++) {
         int v, u;
@@ -47,10 +47,10 @@ int main() {
 
     bool check = true;
     for (int i = 0; i < n; i++) {
-        vertex v = graph[i];
+        Vertex v = graph[i];
         if (!v.visited) {
             v.visited = true;
-            v.color = color::red;
+            v.color = Color::red;
             if (!v.neighbours.empty()) {
                 for (auto it: v.neighbours) {
                     check = draw(graph[it], v.color, graph);
