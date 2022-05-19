@@ -4,39 +4,43 @@
 using namespace std;
 
 enum class Color {
-    red, blue
+    none, red, blue
 };
 
 struct Vertex {
-    Color color;
-    bool visited = false;
+    Color color = Color::none;
     vector<int> neighbours;
+    bool neighbours_colored = false;
 };
 
-bool draw(Vertex &u, Color prev_color, vector<Vertex> &graph) {
-    if (u.visited) {
-        return u.color != prev_color;
-    }
+vector<Vertex> graph;
 
-    u.visited = true;
-    u.color = prev_color == Color::red ? Color::blue : Color::red;
-    if (!u.neighbours.empty()) {
-        for (auto it: u.neighbours) {
-            bool check = draw(graph[it], u.color, graph);
+bool draw(int i) {
+    Color needed_color = graph[i].color == Color::red ? Color::blue : Color::red;
+    if (!graph[i].neighbours.empty() && !graph[i].neighbours_colored) {
+        for (auto it: graph[i].neighbours) {
+            if (graph[it].color == Color::none) {
+                graph[it].color = needed_color;
+            } else if (graph[it].color != needed_color) {
+                return false;
+            }
+        }
+        graph[i].neighbours_colored = true;
+
+        for (auto it: graph[i].neighbours) {
+            bool check = draw(it);
             if (!check) {
                 return false;
             }
         }
     }
-
     return true;
 }
 
 int main() {
     int n, m;
     cin >> n >> m;
-
-    vector<Vertex> graph(n);
+    graph.resize(n);
 
     for (int i = 0; i < m; i++) {
         int v, u;
@@ -46,19 +50,11 @@ int main() {
     }
 
     bool check = true;
+    graph[0].color = Color::red;
     for (int i = 0; i < n; i++) {
-        Vertex v = graph[i];
-        if (!v.visited) {
-            v.visited = true;
-            v.color = Color::red;
-            if (!v.neighbours.empty()) {
-                for (auto it: v.neighbours) {
-                    check = draw(graph[it], v.color, graph);
-                    if (!check) {
-                        break;
-                    }
-                }
-            }
+        check = draw(i);
+        if (!check) {
+            break;
         }
     }
     cout << (check ? "YES" : "NO") << endl;
