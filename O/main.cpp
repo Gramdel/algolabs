@@ -1,15 +1,14 @@
 #include <iostream>
 #include <vector>
-#include <list>
 
 using namespace std;
 
 enum class color {
-    none, red, blue
+    red, blue
 };
 
 struct vertex {
-    color color = color::none;
+    color color;
     bool visited = false;
     vector<int> neighbours;
 };
@@ -28,8 +27,8 @@ bool draw(vertex &u, color prev_color, vector<vertex> &graph) {
                 return false;
             }
         }
-        return true;
     }
+
     return true;
 }
 
@@ -52,7 +51,6 @@ int main() {
         if (!v.visited) {
             v.visited = true;
             v.color = color::red;
-
             if (!v.neighbours.empty()) {
                 for (auto it: v.neighbours) {
                     check = draw(graph[it], v.color, graph);
